@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AuthState, User } from './types';
 import { ALL_USERS } from './constants';
@@ -28,7 +27,6 @@ const App: React.FC = () => {
       u => u.username.toLowerCase() === username.toLowerCase()
     );
 
-    // Password rule: name123 (lowercase)
     const expectedPassword = foundUser ? `${foundUser.username.toLowerCase()}123` : '';
 
     if (foundUser && password === expectedPassword) {
@@ -89,17 +87,11 @@ const App: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-2xl shadow-lg shadow-blue-200 transition-all transform active:scale-[0.98]"
+              className="w-full py-3 bg-blue-600 text-white rounded-2xl font-semibold"
             >
-              Iniciar Sesión
+              Ingresar
             </button>
           </form>
-          
-          <div className="mt-8 text-center border-t border-slate-50 pt-6">
-            <p className="text-xs text-slate-400">
-              Uso exclusivo para personal autorizado
-            </p>
-          </div>
         </div>
       </Layout>
     );
@@ -107,10 +99,10 @@ const App: React.FC = () => {
 
   return (
     <Layout auth={auth} onLogout={handleLogout}>
-      {auth.user?.role === 'ADMIN' ? (
+      {auth.user?.role === 'admin' ? (
         <AdminDashboard />
       ) : (
-        <EmployeePortal user={auth.user!} />
+        <EmployeePortal user={auth.user as User} />
       )}
     </Layout>
   );
