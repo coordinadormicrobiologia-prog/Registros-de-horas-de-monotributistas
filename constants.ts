@@ -1,10 +1,14 @@
+// constants.ts
+// Preferimos que el frontend llame al proxy /api/proxy para evitar CORS.
+// Si necesitás usar la URL directa en pruebas locales, usar VITE_* variables en el build.
 
-import { User } from './types';
+export const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || '';
+export const GOOGLE_SCRIPT_API_KEY = import.meta.env.VITE_GOOGLE_SCRIPT_API_KEY || '';
 
-// REEMPLAZA ESTA URL con la URL de tu Google Apps Script implementado como Aplicación Web
-export const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-YOUR-URL/exec';
+// En producción el frontend usará siempre el proxy:
+export const PROXY_PATH = '/api/proxy';
 
-export const EMPLOYEES: User[] = [
+export const EMPLOYEES = [
   { id: '1', username: 'daiana', name: 'Daiana', role: 'EMPLOYEE' },
   { id: '2', username: 'matilde', name: 'Matilde', role: 'EMPLOYEE' },
   { id: '3', username: 'yadia', name: 'Yadia', role: 'EMPLOYEE' },
@@ -13,10 +17,11 @@ export const EMPLOYEES: User[] = [
   { id: '6', username: 'ernestina', name: 'Ernestina', role: 'EMPLOYEE' },
 ];
 
-export const ADMINS: User[] = [
+export const ADMINS = [
   { id: 'admin-1', username: 'miguel', name: 'Miguel', role: 'ADMIN' },
 ];
 
 export const ALL_USERS = [...EMPLOYEES, ...ADMINS];
 
-export const OBSERVATION_PLACEHOLDER = "horas extras, cobertura de guardia pasiva, reemplazo de personal de fin de semana, etc";
+export const OBSERVATION_PLACEHOLDER =
+  "horas extras, cobertura de guardia pasiva, reemplazo de personal de fin de semana, etc";
