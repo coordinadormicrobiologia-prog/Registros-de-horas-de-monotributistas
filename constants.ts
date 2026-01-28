@@ -1,11 +1,6 @@
 // constants.ts
-// Preferimos que el frontend llame al proxy /api/proxy para evitar CORS.
-// Si necesitás usar la URL directa en pruebas locales, usar VITE_* variables en el build.
-
 export const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || '';
 export const GOOGLE_SCRIPT_API_KEY = import.meta.env.VITE_GOOGLE_SCRIPT_API_KEY || '';
-
-// En producción el frontend usará siempre el proxy:
 export const PROXY_PATH = '/api/proxy';
 
 export const EMPLOYEES = [
@@ -17,10 +12,7 @@ export const EMPLOYEES = [
   { id: '6', username: 'ernestina', name: 'Ernestina', role: 'EMPLOYEE' },
 ];
 
-export const ADMINS = [
-  { id: 'admin-1', username: 'miguel', name: 'Miguel', role: 'ADMIN' },
-];
-
+export const ADMINS = [{ id: 'admin-1', username: 'miguel', name: 'Miguel', role: 'ADMIN' }];
 export const ALL_USERS = [...EMPLOYEES, ...ADMINS];
 
 export const OBSERVATION_PLACEHOLDER =
