@@ -1,35 +1,39 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async (req: VercelRequest, res: VercelResponse) => {
-    const url = process.env.GOOGLE_SCRIPT_URL;
-    const apiKey = process.env.GOOGLE_SCRIPT_API_KEY;
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const target = process.env.GOOGLE_SCRIPT_URL;
+  const key = process.env.GOOGLE_SCRIPT_API_KEY || '';
 
-    if (!url || !apiKey) {
-        return res.status(500).json({ error: 'Missing environment variables.' });
+  if (!target) {
+    return res.status(500).json({ error: 'GOOGLE_SCRIPT_URL not configured' });
+  }
+
+  try {
+    if (req.method === 'GET') {
+      // Preserve original query string and append apiKey
+      const qs = req.url?.split('?')[1] || '';
+      const url = `${target}?${qs}${qs ? '&' : ''}apiKey=${encodeURIComponent(key)}`;
+      const r = await fetch(url);
+      const text = await r.text();
+      res.setHeader('Content-Type', r.headers.get('content-type') || 'text/plain');
+      return res.status(r.status).send(text);
     }
 
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-    };
+    // For POST requests forward body and inject apiKey
+    const body = req.body || {};
+    const payload = { ...body, apiKey: key };
 
-    try {
-        if (req.method === 'GET') {
-            const response = await fetch(url, { headers });
-            const data = await response.json();
-            return res.status(response.status).json(data);
-        } else if (req.method === 'POST') {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(req.body),
-            });
-            const data = await response.json();
-            return res.status(response.status).json(data);
-        } else {
-            return res.status(405).json({ error: 'Method Not Allowed' });
-        }
-    } catch (error) {
-        return res.status(500).json({ error: 'Failed to handle request.' });
-    }
-};
+    const r = await fetch(target, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const text = await r.text();
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'text/plain');
+    return res.status(r.status).send(text);
+  } catch (err) {
+    console.error('proxy error', err);
+    return res.status(500).json({ error: 'proxy error', details: String(err) });
+  }
+}
