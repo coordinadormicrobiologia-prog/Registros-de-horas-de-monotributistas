@@ -1,1 +1,12 @@
-{\n  "version": 2,\n  "builds": [\n    {\n      "src": "package.json",\n      "use": "@vercel/static-build",\n      "config": { "distDir": "dist" }\n    }\n  ],\n  "routes": [\n    { "handle": "filesystem" },\n    { "src": "^/api/(.*)", "dest": "/api/$1" },\n    { "src": "/(.*)", "dest": "/index.html" }\n  ]\n}
+{
+  "version": 2,
+  "builds": [
+    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "^/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
