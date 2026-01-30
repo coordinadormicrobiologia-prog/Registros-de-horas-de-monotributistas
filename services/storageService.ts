@@ -101,7 +101,8 @@ export const storageService = {
       try {
         const parsed = JSON.parse(text);
         return Boolean(parsed && (parsed.ok === true || parsed.ok));
-      } catch {
+      } catch (err) {
+        console.warn('deleteLog: response not json', err, 'body:', text);
         return res.ok;
       }
     } catch (err) {
