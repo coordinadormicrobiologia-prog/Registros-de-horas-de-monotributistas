@@ -105,7 +105,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       setMessage({ type: 'success', text: 'Registro marcado para eliminar.' });
       setTimeout(fetchRecentLogs, 2500);
     } else {
-      setMessage({ type: 'error', text: 'No se pudo eliminar el registro.' });
+      setMessage({ type: 'error', text: 'No se pudo eliminar el registro. Verifica tu conexión e intenta nuevamente.' });
     }
     setLoading(false);
   };
@@ -216,12 +216,12 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
             <table className="w-full">
               <thead className="bg-slate-50 border-b">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Fecha</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Horario</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Horas</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Observaciones</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Acción</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Fecha</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Horario</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Horas</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Tipo</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Observaciones</th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
