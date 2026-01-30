@@ -99,7 +99,7 @@ const App: React.FC = () => {
 
   return (
     <Layout auth={auth} onLogout={handleLogout}>
-      {auth.user?.role === 'admin' ? (
+      {auth.user?.role === 'ADMIN' ? (
         <AdminDashboard />
       ) : (
         <EmployeePortal user={auth.user as User} />
