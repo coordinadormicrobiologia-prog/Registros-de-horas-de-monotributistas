@@ -7,6 +7,20 @@ import type { TimeLog } from '../types';
 
 const PROXY = PROXY_PATH || '/api/proxy'; // fallback
 
+// Mapeo de claves del backend (español con espacios) a formato frontend
+const KEY_MAPPINGS = {
+  id: ['ID', 'id'],
+  date: ['Fecha', 'date'],
+  employeeName: ['Nombre', 'employeeName'],
+  entryTime: [' Ingreso', 'Ingreso', 'entryTime'],
+  exitTime: [' Egreso', 'Egreso', 'exitTime'],
+  totalHours: [' Total_Horas', 'Total_Horas', 'totalHours'],
+  dayType: ['Tipo_Dia', 'dayType'],
+  isHoliday: [' Feriado', 'Feriado', 'isHoliday'],
+  observation: ['Observacion', 'observation'],
+  timestamp: ['Fecha_Carga', 'timestamp'],
+} as const;
+
 async function timeoutFetch(url: string, options: RequestInit = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -31,6 +45,18 @@ function parseResponseText(text: string): any {
 }
 
 /**
+ * Busca un valor en el objeto usando múltiples claves posibles
+ */
+function findValue(row: any, possibleKeys: readonly string[], defaultValue: any = ''): any {
+  for (const key of possibleKeys) {
+    if (row[key] !== undefined && row[key] !== null) {
+      return row[key];
+    }
+  }
+  return defaultValue;
+}
+
+/**
  * Normaliza una fila de Sheets (claves en español con espacios)
  * a la estructura TimeLog esperada por el frontend.
  * 
@@ -40,17 +66,16 @@ function parseResponseText(text: string): any {
  */
 function normalizeSheetsRow(row: any): TimeLog | null {
   try {
-    // Manejar claves con espacios y en español
-    const id = row['ID'] || row['id'] || '';
-    const date = row['Fecha'] || row['date'] || '';
-    const employeeName = row['Nombre'] || row['employeeName'] || '';
-    const entryTime = row[' Ingreso'] || row['Ingreso'] || row['entryTime'] || '';
-    const exitTime = row[' Egreso'] || row['Egreso'] || row['exitTime'] || '';
-    const totalHours = parseFloat(row[' Total_Horas'] || row['Total_Horas'] || row['totalHours'] || '0');
-    const dayType = row['Tipo_Dia'] || row['dayType'] || 'Semana';
-    const isHoliday = Boolean(row[' Feriado'] || row['Feriado'] || row['isHoliday']);
-    const observation = row['Observacion'] || row['observation'] || '';
-    const timestamp = row['Fecha_Carga'] || row['timestamp'] || new Date().toISOString();
+    const id = findValue(row, KEY_MAPPINGS.id);
+    const date = findValue(row, KEY_MAPPINGS.date);
+    const employeeName = findValue(row, KEY_MAPPINGS.employeeName);
+    const entryTime = findValue(row, KEY_MAPPINGS.entryTime);
+    const exitTime = findValue(row, KEY_MAPPINGS.exitTime);
+    const totalHours = parseFloat(findValue(row, KEY_MAPPINGS.totalHours, '0'));
+    const dayType = findValue(row, KEY_MAPPINGS.dayType, 'Semana');
+    const isHoliday = Boolean(findValue(row, KEY_MAPPINGS.isHoliday, false));
+    const observation = findValue(row, KEY_MAPPINGS.observation);
+    const timestamp = findValue(row, KEY_MAPPINGS.timestamp, new Date().toISOString());
 
     if (!id || !date || !employeeName) {
       console.warn('storageService: Row missing required fields', row);
@@ -92,6 +117,10 @@ export const storageService = {
    * Leer todos los registros con reintentos y normalización.
    * El backend puede devolver respuestas inconsistentes (caché edge, etc.)
    * por lo que reintentamos hasta obtener un array válido.
+   * 
+   * @param retries - Número máximo de intentos (default: 3)
+   * @param delayMs - Tiempo de espera en milisegundos entre reintentos (default: 800)
+   * @returns Array de TimeLog normalizado
    */
   async getAllLogs(retries = 3, delayMs = 800): Promise<TimeLog[]> {
     let attempt = 0;

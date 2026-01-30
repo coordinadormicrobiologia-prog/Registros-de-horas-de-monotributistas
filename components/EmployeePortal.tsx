@@ -4,6 +4,9 @@ import { User, TimeLog, DayType } from '../types';
 import { storageService } from '../services/storageService';
 import { OBSERVATION_PLACEHOLDER } from '../constants';
 
+// Tiempo de espera para sincronización con Google Sheets después de guardar/eliminar
+const SYNC_DELAY_MS = 2500;
+
 interface EmployeePortalProps {
   user: User;
 }
@@ -125,8 +128,8 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
         });
       }
 
-      // Reintentar fetching después de 2 segundos para sincronizar con Google Sheets
-      setTimeout(fetchRecentLogs, 2500);
+      // Reintentar fetching después de un delay para sincronizar con Google Sheets
+      setTimeout(fetchRecentLogs, SYNC_DELAY_MS);
     } else {
       setMessage({ type: 'error', text: 'Error al enviar datos. Verifique su conexión.' });
     }
@@ -148,7 +151,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       setMessage({ type: 'success', text: 'Registro eliminado correctamente.' });
       
       // Refrescar después de un breve delay para sincronizar
-      setTimeout(fetchRecentLogs, 2500);
+      setTimeout(fetchRecentLogs, SYNC_DELAY_MS);
     } else {
       setMessage({ type: 'error', text: 'No se pudo eliminar el registro.' });
     }
