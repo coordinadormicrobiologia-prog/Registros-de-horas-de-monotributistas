@@ -60,6 +60,28 @@ export const storageService = {
       console.error('saveLog error', err);
       return false;
     }
+  },
+
+  // Borrar un registro
+  async deleteLog(id: string): Promise<boolean> {
+    try {
+      const res = await timeoutFetch(PROXY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deleteEntry', id }),
+      });
+
+      const text = await res.text();
+      try {
+        const parsed = JSON.parse(text);
+        return Boolean(parsed && (parsed.ok === true || parsed.ok));
+      } catch {
+        return res.ok;
+      }
+    } catch (err) {
+      console.error('deleteLog error', err);
+      return false;
+    }
   }
 };
 
