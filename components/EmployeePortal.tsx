@@ -17,6 +17,8 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [recentLogs, setRecentLogs] = useState<TimeLog[]>([]);
+  const [allMyLogs, setAllMyLogs] = useState<TimeLog[]>([]);
+  const [showAll, setShowAll] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null);
 
   const fetchRecentLogs = async () => {
@@ -24,9 +26,9 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
     const logs = await storageService.getAllLogs();
     const myLogs = logs
       .filter(l => l.employeeName === user.name)
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 5);
-    setRecentLogs(myLogs);
+      .sort((a, b) => b.date.localeCompare(a.date));
+    setAllMyLogs(myLogs);
+    setRecentLogs(myLogs.slice(0, 5));
     setIsRefreshing(false);
   };
 
@@ -95,10 +97,12 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
     if (!window.confirm('¿Deseas borrar este registro?')) return;
     
     setLoading(true);
+    setMessage(null);
     const success = await storageService.deleteLog(id);
     if (success) {
       setRecentLogs(prev => prev.filter(l => l.id !== id));
-      setMessage({ type: 'success', text: 'Registro marcado para eliminar.' });
+      setAllMyLogs(prev => prev.filter(l => l.id !== id));
+      setMessage({ type: 'success', text: 'Registro eliminado exitosamente.' });
       setTimeout(fetchRecentLogs, 2500);
     } else {
       setMessage({ type: 'error', text: 'No se pudo eliminar el registro.' });
@@ -184,43 +188,82 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
         <div className="p-6 border-b flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Tus Registros Recientes</h3>
+            <h3 className="text-lg font-bold text-slate-800">Tus Registros</h3>
             <p className="text-xs text-slate-500">Puedes borrar una carga si cometiste un error</p>
           </div>
-          <button 
-            onClick={fetchRecentLogs}
-            disabled={isRefreshing}
-            className={`p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all ${isRefreshing ? 'animate-spin' : ''}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowAll(!showAll)}
+              className="px-4 py-2 text-sm font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+            >
+              {showAll ? 'Mostrar Recientes' : 'Mostrar Todos'}
+            </button>
+            <button 
+              onClick={fetchRecentLogs}
+              disabled={isRefreshing}
+              className={`p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div className="divide-y">
-          {recentLogs.map(log => (
-            <div key={log.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-              <div>
-                <p className="font-bold text-slate-700">{new Date(log.date + 'T12:00:00').toLocaleDateString('es-AR')}</p>
-                <p className="text-xs text-slate-500">{log.entryTime} a {log.exitTime} — {log.totalHours}h ({log.dayType})</p>
-              </div>
-              <button
-                onClick={() => handleDelete(log.id)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Borrar Registro"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          ))}
-          {!isRefreshing && recentLogs.length === 0 && (
-            <div className="p-8 text-center text-slate-400 italic">No hay registros recientes encontrados.</div>
-          )}
-          {isRefreshing && (
-            <div className="p-8 text-center text-blue-400 italic">Buscando en la planilla...</div>
-          )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4">Horario</th>
+                <th className="px-6 py-4 text-center">Horas</th>
+                <th className="px-6 py-4">Tipo</th>
+                <th className="px-6 py-4">Observaciones</th>
+                <th className="px-6 py-4 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {(showAll ? allMyLogs : recentLogs).map((log) => (
+                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4 text-sm text-slate-900 font-medium">
+                    {new Date(log.date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  </td>
+                  <td className="px-6 py-4 text-xs text-slate-500">{log.entryTime} - {log.exitTime}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-sm font-bold">{log.totalHours}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                      log.dayType === 'Feriado' ? 'bg-red-100 text-red-700' :
+                      log.dayType === 'Fin de Semana' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                    }`}>{log.dayType}</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-500 italic truncate max-w-[200px]">{log.observation || '-'}</td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => handleDelete(log.id)}
+                      disabled={loading}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Borrar Registro"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!isRefreshing && (showAll ? allMyLogs : recentLogs).length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-400 italic">No hay registros encontrados.</td>
+                </tr>
+              )}
+              {isRefreshing && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-blue-400 italic">Buscando en la planilla...</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
