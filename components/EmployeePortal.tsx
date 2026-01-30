@@ -21,13 +21,26 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
 
   const fetchRecentLogs = async () => {
     setIsRefreshing(true);
-    const logs = await storageService.getAllLogs();
-    const myLogs = logs
-      .filter(l => l.employeeName === user.name)
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 5);
-    setRecentLogs(myLogs);
-    setIsRefreshing(false);
+    try {
+      const logs = await storageService.getAllLogs();
+      
+      // Filtrar registros del usuario actual (case-insensitive, trim spaces)
+      const userName = user.name.toLowerCase().trim();
+      const myLogs = logs
+        .filter(l => {
+          const logName = (l.employeeName || '').toLowerCase().trim();
+          return logName === userName;
+        })
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 5);
+      
+      setRecentLogs(myLogs);
+      console.log(`EmployeePortal: Found ${myLogs.length} logs for ${user.name}`);
+    } catch (err) {
+      console.error('EmployeePortal.fetchRecentLogs error', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -35,6 +48,24 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       setMessage({ type: 'warning', text: 'Configuración pendiente: Falta la URL de Google Script en constants.ts' });
     }
     fetchRecentLogs();
+
+    // Exponer helper de debug temporal para facilitar pruebas en producción
+    (window as any).__debug_fetchRecentLogs = async () => {
+      console.log('=== DEBUG: fetchRecentLogs called manually ===');
+      const allLogs = await storageService.getAllLogs();
+      console.log('All logs from service:', allLogs);
+      const userName = user.name.toLowerCase().trim();
+      const filtered = allLogs.filter(l => {
+        const logName = (l.employeeName || '').toLowerCase().trim();
+        return logName === userName;
+      });
+      console.log(`Filtered logs for ${user.name}:`, filtered);
+      return filtered;
+    };
+
+    return () => {
+      delete (window as any).__debug_fetchRecentLogs;
+    };
   }, [user.name]);
 
   const calculateHours = () => {
@@ -78,12 +109,23 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       observation
     };
 
-    const success = await storageService.saveLog(log);
+    const result = await storageService.saveLog(log);
 
-    if (success) {
+    if (result.ok) {
       setMessage({ type: 'success', text: '¡Registro enviado! Actualizando lista...' });
       setObservation('');
-      // Reintentar fetching después de 2 segundos para dar tiempo a Google Sheets
+
+      // Optimistic update: agregar el registro guardado al estado
+      if (result.saved) {
+        setRecentLogs(prev => {
+          const filtered = prev.filter(l => l.id !== result.saved!.id);
+          return [result.saved!, ...filtered]
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .slice(0, 5);
+        });
+      }
+
+      // Reintentar fetching después de 2 segundos para sincronizar con Google Sheets
       setTimeout(fetchRecentLogs, 2500);
     } else {
       setMessage({ type: 'error', text: 'Error al enviar datos. Verifique su conexión.' });
@@ -95,10 +137,17 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
     if (!window.confirm('¿Deseas borrar este registro?')) return;
     
     setLoading(true);
-    const success = await storageService.deleteLog(id);
+    setMessage(null);
+
+    // Pasar requesterName para validación server-side
+    const success = await storageService.deleteLog(id, user.name);
+    
     if (success) {
+      // Optimistic update: remover de UI inmediatamente
       setRecentLogs(prev => prev.filter(l => l.id !== id));
-      setMessage({ type: 'success', text: 'Registro marcado para eliminar.' });
+      setMessage({ type: 'success', text: 'Registro eliminado correctamente.' });
+      
+      // Refrescar después de un breve delay para sincronizar
       setTimeout(fetchRecentLogs, 2500);
     } else {
       setMessage({ type: 'error', text: 'No se pudo eliminar el registro.' });
