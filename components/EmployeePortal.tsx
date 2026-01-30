@@ -238,7 +238,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
                       log.dayType === 'Fin de Semana' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
                     }`}>{log.dayType}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 italic truncate max-w-[200px]">{log.observation || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500 italic overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px]">{log.observation || '-'}</td>
                   <td className="px-6 py-4 text-right">
                     <button 
                       onClick={() => handleDelete(log.id)}
