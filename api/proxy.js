@@ -19,6 +19,7 @@ export default async function handler(req, res) {
 
 
   if (!target) {
+    console.error('[proxy] GOOGLE_SCRIPT_URL not configured');
     return res.status(500).json({ error: 'GOOGLE_SCRIPT_URL not configured' });
   }
 
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const qs = (req.url || '').split('?')[1] || '';
       const url = `${target}?${qs}${qs ? '&' : ''}apiKey=${encodeURIComponent(key)}`;
+      console.info(`[proxy] GET -> ${url}`);
       const r = await fetch(url);
       const text = await r.text();
       res.setHeader('Content-Type', r.headers.get('content-type') || 'text/plain');
@@ -34,20 +36,28 @@ export default async function handler(req, res) {
     }
 
 
+    // Aceptar application/json o text/plain desde el cliente
     const body = req.body || {};
     const payload = { ...body, apiKey: key };
 
+    console.info('[proxy] POST forwarding to', target, 'payload:', JSON.stringify(payload));
 
     const r = await fetch(target, {
       method: 'POST',
-      // clave: text/plain evita preflight raro aguas abajo y es muy compatible con GAS
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: { 'Content-Type': 'application/json;charset=utf-8' },
       body: JSON.stringify(payload),
     });
 
-
     const text = await r.text();
-    res.setHeader('Content-Type', r.headers.get('content-type') || 'text/plain');
+    const contentType = r.headers.get('content-type') || 'text/plain';
+    res.setHeader('Content-Type', contentType);
+
+    if (!r.ok) {
+      console.error('[proxy] upstream error', { status: r.status, body: text });
+      // reenviar el body del upstream y el status para debug en frontend
+      return res.status(r.status).send(text);
+    }
+
     return res.status(r.status).send(text);
   } catch (err) {
     console.error('proxy error', err);

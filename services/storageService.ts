@@ -18,19 +18,36 @@ async function timeoutFetch(url: string, options: RequestInit = {}) {
 }
 
 export const storageService = {
-  // Comprueba si la app está configurada: aceptamos proxy o la URL directa
+  // Nota: isConfigured() histórica mantiene compatibilidad; use checkConfigured() para comprobación real
   isConfigured(): boolean {
     return Boolean(PROXY || GOOGLE_SCRIPT_URL);
+  },
+
+  // Comprueba realmente si el proxy/endpoint está respondiendo
+  async checkConfigured(): Promise<boolean> {
+    try {
+      const res = await timeoutFetch('/api/health', { method: 'GET' });
+      return res.ok;
+    } catch (err) {
+      console.error('checkConfigured error', err);
+      return false;
+    }
   },
 
   // Leer todos los registros
   async getAllLogs(): Promise<any[]> {
     try {
-      // Usa proxy para evitar CORS; action=getEntries será pasada al Apps Script desde el proxy
       const url = `${PROXY}?action=getEntries`;
       const res = await timeoutFetch(url, { method: 'GET' });
       const text = await res.text();
-      try { return JSON.parse(text).data ?? JSON.parse(text); } catch { return []; }
+      if (!res.ok) {
+        console.error('getAllLogs upstream error', { status: res.status, body: text });
+        return [];
+      }
+      try { return JSON.parse(text).data ?? JSON.parse(text); } catch (err) {
+        console.error('getAllLogs parse error', err, 'text:', text);
+        return [];
+      }
     } catch (err) {
       console.error('getAllLogs error', err);
       return [];
@@ -40,24 +57,56 @@ export const storageService = {
   // Guardar un registro
   async saveLog(entry: any): Promise<boolean> {
     try {
-      // Enviar al proxy; este injectará apiKey y forwardeará al Apps Script
       const res = await timeoutFetch(PROXY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'saveEntry', entry }),
       });
 
-      // Proxy reenvía la respuesta del Apps Script; intentamos parsear
       const text = await res.text();
+      if (!res.ok) {
+        console.error('saveLog upstream error', { status: res.status, body: text });
+        return false;
+      }
+
       try {
         const parsed = JSON.parse(text);
         return Boolean(parsed && (parsed.ok === true || parsed.ok));
-      } catch {
+      } catch (err) {
         // Si no es JSON, consideramos ok si status HTTP es 2xx
+        console.warn('saveLog: response not json', err, 'body:', text);
         return res.ok;
       }
     } catch (err) {
       console.error('saveLog error', err);
+      return false;
+    }
+  },
+
+  // Borrar (o marcar) un registro
+  async deleteLog(id: string): Promise<boolean> {
+    try {
+      const res = await timeoutFetch(PROXY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deleteEntry', id }),
+      });
+
+      const text = await res.text();
+      if (!res.ok) {
+        console.error('deleteLog upstream error', { status: res.status, body: text });
+        return false;
+      }
+
+      try {
+        const parsed = JSON.parse(text);
+        return Boolean(parsed && (parsed.ok === true || parsed.ok));
+      } catch (err) {
+        console.warn('deleteLog: response not json', err, 'body:', text);
+        return res.ok;
+      }
+    } catch (err) {
+      console.error('deleteLog error', err);
       return false;
     }
   }
