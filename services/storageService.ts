@@ -1,8 +1,5 @@
 // services/storageService.ts
-// Servicio que envuelve las llamadas a /api/proxy.
-// Exporta funciones individuales y un objeto named export `storageService`
-// para que `import { storageService } from '../services/storageService'` funcione.
-
+// Wrapper para comunicarse con /api/proxy (que reenvía al Google Script).
 async function parseResponseText(response: Response): Promise<any> {
   const text = await response.text();
   try {
@@ -19,7 +16,6 @@ export async function getEntriesFor(owner: string): Promise<any[]> {
   if (!r.ok) {
     throw new Error((data && data.error) || `getEntries failed: ${r.status}`);
   }
-  // Algunos flujos devuelven { ok: true, data: [...] } y otros solo [...]
   if (data && data.ok === true && Array.isArray(data.data)) return data.data;
   if (Array.isArray(data)) return data;
   return [];
@@ -51,7 +47,6 @@ export async function deleteEntry(id: string, requesterName: string): Promise<an
   return data;
 }
 
-// Named export esperado por EmployeePortal.tsx
 export const storageService = {
   getEntriesFor,
   saveEntry,
