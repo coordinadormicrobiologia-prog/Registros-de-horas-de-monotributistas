@@ -249,6 +249,19 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
           )}
         </div>
       </div>
+
+      {/* Debug section - temporal for PR review */}
+      <div className="bg-slate-50 rounded-2xl shadow-sm border overflow-hidden">
+        <div className="p-4 border-b">
+          <h3 className="text-sm font-bold text-slate-600">Debug: Recent Logs Data</h3>
+          <p className="text-xs text-slate-500">Temporal - for PR review only</p>
+        </div>
+        <div className="p-4">
+          <pre className="text-xs overflow-auto max-h-64 bg-white p-4 rounded border">
+            {JSON.stringify(recentLogs, null, 2)}
+          </pre>
+        </div>
+      </div>
     </div>
   );
 };
