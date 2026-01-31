@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TimeLog, DayType } from '../types';
 import { storageService } from '../services/storageService';
+import { formatLogDateForDisplay } from '../src/utils/dateHelpers';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart, Pie, Cell 
@@ -76,7 +77,7 @@ const AdminDashboard: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('¿Confirmas que deseas eliminar este registro permanentemente?')) return;
     
-    const success = await storageService.deleteLog(id);
+    const success = await storageService.deleteLog(id, 'ADMIN');
     if (success) {
       setLogs(prev => prev.filter(l => l.id !== id));
       // Pequeño delay para que el script de Google procese la fila antes del refresh
@@ -169,7 +170,7 @@ const AdminDashboard: React.FC = () => {
               {filteredLogs.sort((a,b) => b.date.localeCompare(a.date)).map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 text-sm text-slate-900 font-medium">
-                    {new Date(log.date + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                    {formatLogDateForDisplay(log.date)}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-700 font-semibold">{log.employeeName}</td>
                   <td className="px-6 py-4 text-xs text-slate-500">{log.entryTime} - {log.exitTime}</td>

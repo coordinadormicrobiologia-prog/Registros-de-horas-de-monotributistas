@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, TimeLog, DayType } from '../types';
 import { storageService } from '../services/storageService';
 import { OBSERVATION_PLACEHOLDER } from '../constants';
+import { formatLogDateForDisplay } from '../src/utils/dateHelpers';
 
 interface EmployeePortalProps {
   user: User;
@@ -21,13 +22,32 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
 
   const fetchRecentLogs = async () => {
     setIsRefreshing(true);
+    console.debug('[EmployeePortal] Fetching recent logs for user:', user.name);
+    
     const logs = await storageService.getAllLogs();
+    console.debug('[EmployeePortal] Received logs:', logs.length);
+    
+    // Normalize and filter by user (case-insensitive, trimmed comparison)
+    const userNameLower = user.name.toLowerCase().trim();
     const myLogs = logs
-      .filter(l => l.employeeName === user.name)
+      .filter(l => {
+        const logNameLower = (l.employeeName || '').toLowerCase().trim();
+        return logNameLower === userNameLower;
+      })
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 5);
+    
+    console.debug('[EmployeePortal] Filtered to', myLogs.length, 'logs for user');
     setRecentLogs(myLogs);
     setIsRefreshing(false);
+    
+    // Expose debug helper for testing
+    (window as any).__debug_fetchRecentLogs = () => {
+      console.log('All logs:', logs);
+      console.log('My logs:', myLogs);
+      console.log('User name:', user.name, '(normalized:', userNameLower, ')');
+      return myLogs;
+    };
   };
 
   useEffect(() => {
@@ -78,13 +98,21 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       observation
     };
 
-    const success = await storageService.saveLog(log);
+    const result = await storageService.saveLog(log);
 
-    if (success) {
+    if (result.ok) {
       setMessage({ type: 'success', text: '¡Registro enviado! Actualizando lista...' });
       setObservation('');
-      // Reintentar fetching después de 2 segundos para dar tiempo a Google Sheets
-      setTimeout(fetchRecentLogs, 2500);
+      
+      // Optimistic update: add to list immediately
+      const savedLog: TimeLog = {
+        ...log,
+        timestamp: new Date().toISOString()
+      };
+      setRecentLogs(prev => [savedLog, ...prev].slice(0, 5));
+      
+      // Refetch after delay to sync with Sheets
+      setTimeout(fetchRecentLogs, 1500);
     } else {
       setMessage({ type: 'error', text: 'Error al enviar datos. Verifique su conexión.' });
     }
@@ -95,7 +123,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
     if (!window.confirm('¿Deseas borrar este registro?')) return;
     
     setLoading(true);
-    const success = await storageService.deleteLog(id);
+    const success = await storageService.deleteLog(id, user.name);
     if (success) {
       setRecentLogs(prev => prev.filter(l => l.id !== id));
       setMessage({ type: 'success', text: 'Registro marcado para eliminar.' });
@@ -201,7 +229,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
           {recentLogs.map(log => (
             <div key={log.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
               <div>
-                <p className="font-bold text-slate-700">{new Date(log.date + 'T12:00:00').toLocaleDateString('es-AR')}</p>
+                <p className="font-bold text-slate-700">{formatLogDateForDisplay(log.date)}</p>
                 <p className="text-xs text-slate-500">{log.entryTime} a {log.exitTime} — {log.totalHours}h ({log.dayType})</p>
               </div>
               <button
