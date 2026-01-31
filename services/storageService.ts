@@ -43,7 +43,10 @@ function normalizeSheetsRow(row: any): TimeLog | null {
     const entryTime = row.entryTime || row[' Ingreso'] || row.Ingreso || row.ingreso || '';
     const exitTime = row.exitTime || row.Egreso || row.egreso || '';
     const totalHours = parseFloat(row.totalHours || row[' Total_Horas'] || row.Total_Horas || row.total_horas || '0');
-    const dayType = row.dayType || row.Tipo_Dia || row.tipo_dia || 'Semana';
+    const dayTypeRaw = row.dayType || row.Tipo_Dia || row.tipo_dia || 'Semana';
+    // Validate dayType against known values
+    const validDayTypes = ['Semana', 'Fin de Semana', 'Feriado'];
+    const dayType = validDayTypes.includes(dayTypeRaw) ? dayTypeRaw : 'Semana';
     const isHoliday = Boolean(row.isHoliday || row.Feriado || row.feriado);
     const observation = row.observation || row.Observacion || row.observacion || '';
     const timestamp = row.timestamp || row.Fecha_Carga || row.fecha_carga || new Date().toISOString();
@@ -60,7 +63,7 @@ function normalizeSheetsRow(row: any): TimeLog | null {
       entryTime,
       exitTime,
       totalHours,
-      dayType: dayType as any,
+      dayType: dayType as TimeLog['dayType'],
       isHoliday,
       observation,
       timestamp
