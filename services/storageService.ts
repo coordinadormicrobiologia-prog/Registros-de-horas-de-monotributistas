@@ -1,66 +1,48 @@
-// services/storageService.ts
-// Implementación que usa el proxy /api/proxy cuando está disponible.
-// Requiere que exista src/constants.ts exportando PROXY_PATH
-
-import { PROXY_PATH, GOOGLE_SCRIPT_URL } from '../src/constants';
-
-const PROXY = PROXY_PATH || '/api/proxy'; // fallback
-
-async function timeoutFetch(url: string, options: RequestInit = {}) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+// src/services/storageService.ts
+export async function parseResponseText(response: Response) {
+  const text = await response.text();
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } finally {
-    clearTimeout(timeoutId);
+    return JSON.parse(text);
+  } catch {
+    return text;
   }
 }
 
-export const storageService = {
-  // Comprueba si la app está configurada: aceptamos proxy o la URL directa
-  isConfigured(): boolean {
-    return Boolean(PROXY || GOOGLE_SCRIPT_URL);
-  },
-
-  // Leer todos los registros
-  async getAllLogs(): Promise<any[]> {
-    try {
-      // Usa proxy para evitar CORS; action=getEntries será pasada al Apps Script desde el proxy
-      const url = `${PROXY}?action=getEntries`;
-      const res = await timeoutFetch(url, { method: 'GET' });
-      const text = await res.text();
-      try { return JSON.parse(text).data ?? JSON.parse(text); } catch { return []; }
-    } catch (err) {
-      console.error('getAllLogs error', err);
-      return [];
-    }
-  },
-
-  // Guardar un registro
-  async saveLog(entry: any): Promise<boolean> {
-    try {
-      // Enviar al proxy; este injectará apiKey y forwardeará al Apps Script
-      const res = await timeoutFetch(PROXY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'saveEntry', entry }),
-      });
-
-      // Proxy reenvía la respuesta del Apps Script; intentamos parsear
-      const text = await res.text();
-      try {
-        const parsed = JSON.parse(text);
-        return Boolean(parsed && (parsed.ok === true || parsed.ok));
-      } catch {
-        // Si no es JSON, consideramos ok si status HTTP es 2xx
-        return res.ok;
-      }
-    } catch (err) {
-      console.error('saveLog error', err);
-      return false;
-    }
+export async function getEntriesFor(owner: string) {
+  const url = `/api/proxy?action=getEntries&owner=${encodeURIComponent(owner)}`;
+  const r = await fetch(url, { method: 'GET' });
+  const data = await parseResponseText(r);
+  if (!r.ok) {
+    throw new Error((data && data.error) || `getEntries failed: ${r.status}`);
   }
-};
+  // if GAS returns {ok:true, data: [...]}
+  if (data && data.ok === true && Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  return [];
+}
 
-export default storageService;
+export async function saveEntry(entry: any) {
+  const r = await fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'saveEntry', entry }),
+  });
+  const data = await parseResponseText(r);
+  if (!r.ok || (data && data.ok === false)) {
+    throw new Error((data && data.error) || 'Save failed');
+  }
+  return data;
+}
+
+export async function deleteEntry(id: string, requesterName: string) {
+  const r = await fetch('/api/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'deleteEntry', id, requesterName }),
+  });
+  const data = await parseResponseText(r);
+  if (!r.ok || (data && data.ok === false)) {
+    throw new Error((data && data.error) || 'Delete failed');
+  }
+  return data;
+}
