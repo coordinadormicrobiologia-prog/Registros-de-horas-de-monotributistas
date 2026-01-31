@@ -54,7 +54,7 @@ export async function deleteEntry(id: string, requesterName: string): Promise<an
 // Additional methods for EmployeePortal compatibility
 export async function getAllLogs(): Promise<any[]> {
   // Get all entries without filtering by owner
-  const url = `/api/proxy?action=getEntries&owner=`;
+  const url = `/api/proxy?action=getEntries`;
   const r = await fetch(url, { method: 'GET' });
   const data = await parseResponseText(r);
   if (!r.ok) {
@@ -77,9 +77,13 @@ export async function saveLog(log: any): Promise<boolean> {
   }
 }
 
-export async function deleteLog(id: string, requesterName?: string): Promise<boolean> {
+export async function deleteLog(id: string, requesterName: string): Promise<boolean> {
   try {
-    await deleteEntry(id, requesterName || '');
+    if (!requesterName) {
+      console.error('deleteLog: requesterName is required');
+      return false;
+    }
+    await deleteEntry(id, requesterName);
     return true;
   } catch (err) {
     console.error('deleteLog error:', err);

@@ -6,7 +6,7 @@
 // - SPREADSHEET_ID: ID de la hoja de cálculo de Google Sheets
 // - API_KEY_EXPECTED: "enterobacter" (o el valor configurado en GOOGLE_SCRIPT_API_KEY)
 
-const SPREADSHEET_ID = 'TU_SPREADSHEET_ID_AQUI'; // Reemplazar con el ID real
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Replace with your actual Spreadsheet ID
 const API_KEY_EXPECTED = 'enterobacter';
 const SHEET_NAME = 'Registros'; // Nombre de la hoja
 

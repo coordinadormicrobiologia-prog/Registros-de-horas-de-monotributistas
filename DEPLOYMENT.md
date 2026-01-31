@@ -6,7 +6,7 @@
    - Go to https://script.google.com/
    - Create a new project
    - Copy the entire contents of `Code.gs` from this repository
-   - Replace `TU_SPREADSHEET_ID_AQUI` with your actual Google Sheets ID
+   - Replace `YOUR_SPREADSHEET_ID_HERE` with your actual Google Sheets ID
 
 2. **Configure the spreadsheet:**
    - Create a Google Sheet with a tab named "Registros"

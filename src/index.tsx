@@ -36,12 +36,17 @@ function safeInit() {
               <summary style="cursor: pointer;">Detalles del error</summary>
               <pre style="margin-top: 8px; padding: 8px; background: #f1f5f9; border-radius: 4px; overflow-x: auto;">${error instanceof Error ? error.message : String(error)}</pre>
             </details>
-            <button onclick="window.location.reload()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            <button id="reload-btn" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
               Recargar página
             </button>
           </div>
         </div>
       `;
+      // Add event listener after DOM is created
+      const reloadBtn = rootElement.querySelector('#reload-btn');
+      if (reloadBtn) {
+        reloadBtn.addEventListener('click', () => window.location.reload());
+      }
     }
   }
 }
