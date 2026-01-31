@@ -22,8 +22,9 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
   const fetchRecentLogs = async () => {
     setIsRefreshing(true);
     const logs = await storageService.getAllLogs();
+    // Filter by user name (case-insensitive, trimmed)
     const myLogs = logs
-      .filter(l => l.employeeName === user.name)
+      .filter(l => l.employeeName?.trim().toLowerCase() === user.name.trim().toLowerCase())
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 5);
     setRecentLogs(myLogs);
@@ -35,6 +36,13 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       setMessage({ type: 'warning', text: 'Configuración pendiente: Falta la URL de Google Script en constants.ts' });
     }
     fetchRecentLogs();
+
+    // Temporary debug helper
+    (window as any).__debug_fetchRecentLogs = async () => {
+      const allLogs = await storageService.getAllLogs();
+      console.log('[DEBUG] All logs from storageService:', allLogs);
+      return allLogs;
+    };
   }, [user.name]);
 
   const calculateHours = () => {
@@ -78,12 +86,30 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
       observation
     };
 
-    const success = await storageService.saveLog(log);
+    const result = await storageService.saveLog(log);
 
-    if (success) {
+    if (result.ok) {
       setMessage({ type: 'success', text: '¡Registro enviado! Actualizando lista...' });
       setObservation('');
-      // Reintentar fetching después de 2 segundos para dar tiempo a Google Sheets
+      
+      // Optimistic update: if we got saved data, add it immediately
+      if (result.saved && result.saved.id) {
+        const newLog: TimeLog = {
+          id: result.saved.id || log.id,
+          date: log.date,
+          employeeName: log.employeeName,
+          entryTime: log.entryTime,
+          exitTime: log.exitTime,
+          totalHours: log.totalHours,
+          dayType: log.dayType,
+          isHoliday: log.isHoliday,
+          observation: log.observation,
+          timestamp: new Date().toISOString()
+        };
+        setRecentLogs(prev => [newLog, ...prev].slice(0, 5));
+      }
+      
+      // Retry fetching to synchronize with server
       setTimeout(fetchRecentLogs, 2500);
     } else {
       setMessage({ type: 'error', text: 'Error al enviar datos. Verifique su conexión.' });
@@ -95,7 +121,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
     if (!window.confirm('¿Deseas borrar este registro?')) return;
     
     setLoading(true);
-    const success = await storageService.deleteLog(id);
+    const success = await storageService.deleteLog(id, user.name);
     if (success) {
       setRecentLogs(prev => prev.filter(l => l.id !== id));
       setMessage({ type: 'success', text: 'Registro marcado para eliminar.' });
@@ -221,6 +247,19 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
           {isRefreshing && (
             <div className="p-8 text-center text-blue-400 italic">Buscando en la planilla...</div>
           )}
+        </div>
+      </div>
+
+      {/* Debug section - temporal for PR review */}
+      <div className="bg-slate-50 rounded-2xl shadow-sm border overflow-hidden">
+        <div className="p-4 border-b">
+          <h3 className="text-sm font-bold text-slate-600">Debug: Recent Logs Data</h3>
+          <p className="text-xs text-slate-500">Temporal - for PR review only</p>
+        </div>
+        <div className="p-4">
+          <pre className="text-xs overflow-auto max-h-64 bg-white p-4 rounded border">
+            {JSON.stringify(recentLogs, null, 2)}
+          </pre>
         </div>
       </div>
     </div>
