@@ -95,7 +95,7 @@ const EmployeePortal: React.FC<EmployeePortalProps> = ({ user }) => {
     if (!window.confirm('¿Deseas borrar este registro?')) return;
     
     setLoading(true);
-    const success = await storageService.deleteLog(id);
+    const success = await storageService.deleteLog(id, user.name);
     if (success) {
       setRecentLogs(prev => prev.filter(l => l.id !== id));
       setMessage({ type: 'success', text: 'Registro marcado para eliminar.' });

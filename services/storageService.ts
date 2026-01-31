@@ -51,9 +51,55 @@ export async function deleteEntry(id: string, requesterName: string): Promise<an
   return data;
 }
 
+// Additional methods for EmployeePortal compatibility
+export async function getAllLogs(): Promise<any[]> {
+  // Get all entries without filtering by owner
+  const url = `/api/proxy?action=getEntries&owner=`;
+  const r = await fetch(url, { method: 'GET' });
+  const data = await parseResponseText(r);
+  if (!r.ok) {
+    console.error('getAllLogs failed:', data);
+    return [];
+  }
+  // Return the data array
+  if (data && data.ok === true && Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  return [];
+}
+
+export async function saveLog(log: any): Promise<boolean> {
+  try {
+    await saveEntry(log);
+    return true;
+  } catch (err) {
+    console.error('saveLog error:', err);
+    return false;
+  }
+}
+
+export async function deleteLog(id: string, requesterName?: string): Promise<boolean> {
+  try {
+    await deleteEntry(id, requesterName || '');
+    return true;
+  } catch (err) {
+    console.error('deleteLog error:', err);
+    return false;
+  }
+}
+
+export function isConfigured(): boolean {
+  // Check if the proxy endpoint is available
+  // In production this will always return true since proxy is deployed
+  return true;
+}
+
 // Named export esperado por EmployeePortal.tsx
 export const storageService = {
   getEntriesFor,
   saveEntry,
   deleteEntry,
+  getAllLogs,
+  saveLog,
+  deleteLog,
+  isConfigured,
 };
