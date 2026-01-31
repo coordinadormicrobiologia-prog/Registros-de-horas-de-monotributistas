@@ -33,6 +33,7 @@ export default async function handler(req, res) {
 
     const r = await fetch(target, {
       method: 'POST',
+      // Enviar JSON en text/plain para que Google Apps Script lo reciba en postData.contents
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
     });
